@@ -1,0 +1,7 @@
+Flask==3.0.3
+tensorflow==2.15.1
+pandas==2.2.2
+numpy==1.26.4
+plotly==5.23.0
+gunicorn==21.2.0
+

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Проекты прогнозирования</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1>Проекты</h1>
+      <a class="btn primary" href="/project/new">Новый проект</a>
+    </header>
+    <main class="grid">
+      {% if projects %}
+        {% for p in projects %}
+          <a class="card" href="/project/{{ p['id'] }}">
+            <div class="card-thumb">
+              {% if p.get('thumb') %}
+                <img src="{{ p['thumb'] }}" alt="preview" />
+              {% else %}
+                <div class="placeholder">Нет превью</div>
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <h3>{{ p['name'] }}</h3>
+              <p>{{ p.get('description', '') }}</p>
+            </div>
+          </a>
+        {% endfor %}
+      {% else %}
+        <div class="empty">Пока нет проектов. Создайте новый.</div>
+      {% endif %}
+    </main>
+  </body>
+  </html>
+

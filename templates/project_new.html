@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Новый проект</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="center">
+      <form method="post" class="card" style="padding:16px;max-width:520px;width:100%">
+        <h2 style="margin-top:0">Создать проект</h2>
+        <label>Название<br /><input name="name" required style="width:100%" /></label>
+        <br />
+        <label>Описание<br /><textarea name="description" rows="4" style="width:100%"></textarea></label>
+        <br />
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <a href="/" class="btn">Отмена</a>
+          <button class="btn primary" type="submit">Создать</button>
+        </div>
+      </form>
+    </main>
+  </body>
+  </html>
+

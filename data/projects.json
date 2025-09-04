@@ -1,0 +1,18 @@
+[
+  {
+    "id": "c46be425-a481-4bd3-95fb-c5170a5fefc8",
+    "name": "test",
+    "description": "test1",
+    "thumb": null,
+    "status": "trained",
+    "data_path": "/app/data/projects/c46be425-a481-4bd3-95fb-c5170a5fefc8/test_data.csv",
+    "target": "temperature",
+    "features": [
+      "pressure",
+      "humidity"
+    ],
+    "preprocessed": true,
+    "model": "mlp",
+    "horizon": 1
+  }
+]

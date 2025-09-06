@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import shutil
 from typing import Any, Dict, List, Optional
 
 
@@ -71,6 +72,10 @@ def delete_project(project_id: str) -> bool:
     new_items = [p for p in items if p.get("id") != project_id]
     if len(new_items) != len(items):
         _write_all(new_items)
+        # Удаляем папку проекта и все файлы
+        project_path = os.path.join(DATA_DIR, "projects", project_id)
+        if os.path.exists(project_path):
+            shutil.rmtree(project_path)
         return True
     return False
 
@@ -95,4 +100,34 @@ def load_snapshot(project_id: str) -> Optional[Dict[str, any]]:
         return None
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def save_snapshot_metadata(project_id: str, metadata: Dict[str, any]) -> str:
+    """Сохраняет метаданные снапшота (имена файлов и конфигурацию)"""
+    path = os.path.join(project_dir(project_id), "snapshot_meta.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+    return path
+
+
+def load_snapshot_metadata(project_id: str) -> Optional[Dict[str, any]]:
+    """Загружает метаданные снапшота"""
+    path = os.path.join(project_dir(project_id), "snapshot_meta.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get_data_file_path(project_id: str) -> Optional[str]:
+    """Получает путь к файлу данных проекта"""
+    project = get_project(project_id)
+    if not project or not project.get("data_path"):
+        return None
+    return project["data_path"]
+
+
+def get_artifacts_dir(project_id: str) -> str:
+    """Получает путь к папке с артефактами проекта"""
+    return os.path.join(project_dir(project_id), "artifacts")
 

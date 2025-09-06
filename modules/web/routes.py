@@ -1,7 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, abort
+from flask import Blueprint, render_template, request, redirect, url_for, abort, jsonify
 from modules.storage.projects import list_projects, create_project, get_project
 
-web_bp = Blueprint("web", __name__, template_folder="../../templates", static_folder="../../static")
+web_bp = Blueprint(
+    "web", __name__, template_folder="../../templates", 
+    static_folder="../../static")
 
 
 @web_bp.route("/")

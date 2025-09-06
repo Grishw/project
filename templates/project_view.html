@@ -6,130 +6,60 @@
     <title>{{ project.name }}</title>
     <link rel="stylesheet" href="/static/styles.css" />
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <script>
-      async function uploadCsv(e){
-        e.preventDefault();
-        const form = e.target.closest('form');
-        const fd = new FormData(form);
-        const res = await fetch(form.action, {method:'POST', body: fd});
-        const data = await res.json();
-        const pre = document.getElementById('preview');
-        pre.textContent = JSON.stringify(data, null, 2);
-        if(data.preview && data.preview.info){
-          renderSelectors(data.preview.info.column_names);
-        }
-      }
-      function handleDrop(e){
-        e.preventDefault();
-        const input = document.getElementById('file');
-        if(e.dataTransfer.files && e.dataTransfer.files[0]){
-          input.files = e.dataTransfer.files;
-        }
-      }
-      function handleDrag(e){ e.preventDefault(); }
-      async function applySelection(){
-        const target = document.getElementById('target').value;
-        const features = Array.from(document.querySelectorAll('input[name="feat"]:checked')).map(i=>i.value);
-        const res = await fetch('/project/{{ project.id }}/select', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target, features})});
-        const data = await res.json();
-        if(data.data){
-          renderTable(data.data.columns, data.data.records);
-          drawPlot(target, features, data.data);
-        }
-      }
-      function renderSelectors(columns){
-        const sel = document.getElementById('selectors');
-        sel.innerHTML = '';
-        const t = document.createElement('select');
-        t.id = 'target';
-        columns.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;t.appendChild(o);});
-        sel.appendChild(labelWrap('Target', t));
-        const feats = document.createElement('div');
-        columns.forEach(c=>{const l=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.name='feat';cb.value=c;l.appendChild(cb);l.append(' '+c);l.style.marginRight='8px';feats.appendChild(l);});
-        sel.appendChild(labelWrap('Features', feats));
-        const btn = document.createElement('button');btn.className='btn primary';btn.type='button';btn.textContent='Применить';btn.onclick=applySelection;sel.appendChild(btn);
-      }
-      function labelWrap(title, el){
-        const wrap = document.createElement('div');
-        const h = document.createElement('div');h.textContent=title;h.style.color='#8b97a7';h.style.margin='8px 0 4px';wrap.appendChild(h);wrap.appendChild(el);return wrap;
-      }
-      function renderTable(columns, rows){
-        const host = document.getElementById('table');
-        host.innerHTML = '';
-        const table = document.createElement('table');
-        table.style.width='100%';table.style.borderCollapse='collapse';
-        const thead = document.createElement('thead');
-        const thtr = document.createElement('tr');
-        columns.forEach(c=>{const th=document.createElement('th');th.textContent=c;th.style.borderBottom='1px solid #1d222a';th.style.textAlign='left';th.style.padding='4px 6px';thtr.appendChild(th)});thead.appendChild(thtr);table.appendChild(thead);
-        const tbody = document.createElement('tbody');
-        rows.forEach(r=>{const tr=document.createElement('tr');columns.forEach(c=>{const td=document.createElement('td');td.textContent=r[c];td.style.padding='4px 6px';tr.appendChild(td)});tbody.appendChild(tr)});
-        table.appendChild(tbody);
-        host.appendChild(table);
-      }
-      function drawPlot(target, features, data){
-        const el = document.getElementById('plot');
-        const cols = data.columns;
-        const rows = data.records;
-        const x = Array.from({length: rows.length}, (_,i)=>i);
-        const traces = [];
-        if(target && cols.includes(target)){
-          traces.push({x, y: rows.map(r=>r[target]), name: target, mode:'lines'});
-        }
-        features.forEach(f=>{if(cols.includes(f)){traces.push({x, y: rows.map(r=>r[f]), name: f, mode:'lines'});}});
-        Plotly.newPlot(el, traces, {paper_bgcolor:'#111418', plot_bgcolor:'#111418', font:{color:'#e6e6e6'}});
-      }
-    </script>
+    <script defer src="/static/js/project_view.js"></script>
   </head>
   <body>
-    <div style="display:flex;gap:12px;padding:12px">
-      <aside style="width:12%;min-width:200px">
-        <div class="card" style="padding:12px">
-          <h3 style="margin-top:0">Данные</h3>
-          <form action="/project/{{ project.id }}/upload" method="post" enctype="multipart/form-data" onsubmit="uploadCsv(event)">
-            <div ondrop="handleDrop(event)" ondragover="handleDrag(event)" class="card-thumb" style="height:120px;margin-bottom:8px;cursor:pointer">
+    <div id="app-root" data-project-id="{{ project.id }}"></div>
+    <script id="snapshot-data" type="application/json">{{ snapshot|tojson|safe }}</script>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="card">
+          <h3>Данные</h3>
+          <form id="upload-form" action="/project/{{ project.id }}/upload" method="post" enctype="multipart/form-data">
+            <div id="dropzone" class="card-thumb">
               <div class="placeholder">Перетащите CSV сюда</div>
             </div>
             <input id="file" type="file" name="file" accept=".csv" />
-            <button class="btn primary" type="submit" style="margin-top:8px">Загрузить</button>
+            <button id="upload-btn" class="btn primary" type="submit">Загрузить</button>
           </form>
         </div>
-        <div class="card" style="padding:12px;margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Этапы</h3>
-          <ol style="padding-left:18px;line-height:1.8">
-            <li style="color:#e6e6e6">Загрузка данных</li>
-            <li style="color:#8b97a7">Информация о данных</li>
-            <li style="color:#8b97a7">Предподготовка</li>
-            <li style="color:#8b97a7">Выбор модели</li>
-            <li style="color:#8b97a7">Обучение и прогноз</li>
-            <li style="color:#8b97a7">Экспорт PDF</li>
+        <div class="card">
+          <h3>Этапы</h3>
+          <ol class="steps">
+            <li class="step step-done">Загрузка данных</li>
+            <li class="step">Информация о данных</li>
+            <li class="step">Предподготовка</li>
+            <li class="step">Выбор модели</li>
+            <li class="step">Обучение и прогноз</li>
+            <li class="step">Экспорт PDF</li>
           </ol>
         </div>
       </aside>
-      <main style="width:88%">
-        <div id="work" class="card" style="padding:12px;min-height:320px">
-          <h2 style="margin-top:0">{{ project.name }}</h2>
+      <main>
+        <div id="work" class="card">
+          <h2>{{ project.name }}</h2>
+          <div id="preview-table" class="table"></div>
           <div id="selectors"></div>
-          <div id="table" style="overflow:auto;margin-top:8px"></div>
-          <div id="plot" style="height:360px;margin-top:8px"></div>
-          <pre id="preview" style="white-space:pre-wrap"></pre>
+          <div id="seleted-table" class="table"></div>
+          <div id="plot"></div>
         </div>
-        <div class="card" style="padding:12px; margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Предобработка</h3>
-          <div style="display:flex;gap:8px;align-items:center">
+        <div class="card">
+          <h3>Предобработка</h3>
+          <div class="form-group">
             <label>Метод
               <select id="pp_method">
                 <option value="cusum">CUSUM</option>
                 <option value="last">Последние 200</option>
               </select>
             </label>
-            <button class="btn" type="button" onclick="runPP()">Выполнить</button>
+            <button id="pp_run" class="btn" type="button">Выполнить</button>
           </div>
-          <div id="pp_plot" style="height:320px;margin-top:8px"></div>
-          <div id="pp_curve" style="height:220px;margin-top:8px"></div>
+          <div id="pp_plot"></div>
+          <div id="pp_curve"></div>
         </div>
-        <div class="card" style="padding:12px; margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Модель и прогноз</h3>
-          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+        <div class="card">
+          <h3>Модель и прогноз</h3>
+          <div class="form-group">
             <label>Модель
               <select id="mdl">
                 <option value="mlp">Многослойный персептрон</option>
@@ -144,90 +74,16 @@
               </select>
             </label>
             <label>Эпохи<input id="ep" type="number" value="5" min="1" /></label>
-            <div style="display:flex;align-items:flex-end"><button class="btn primary" type="button" onclick="runTrain()">Обучить и спрогнозировать</button></div>
+            <button id="train_run" class="btn primary" type="button">Обучить и спрогнозировать</button>
           </div>
-          <div id="forecast_plot" style="height:360px;margin-top:8px"></div>
-          <div id="train_info" style="margin-top:8px;color:#8b97a7"></div>
+          <div id="forecast_plot"></div>
+          <div id="train_info"></div>
         </div>
-        <script>
-          async function runTrain(){
-            const target = document.getElementById('target')?.value;
-            if(!target){ alert('Сначала выберите target'); return; }
-            const model = document.getElementById('mdl').value;
-            const windowSize = parseInt(document.getElementById('win').value, 10);
-            const horizon = parseInt(document.getElementById('hor').value, 10);
-            const epochs = parseInt(document.getElementById('ep').value, 10);
-            const res = await fetch('/project/{{ project.id }}/train', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target, model, window: windowSize, horizon, epochs})});
-            const data = await res.json();
-            if(!data.ok){ alert(data.error||'Ошибка'); return; }
-            document.getElementById('train_info').textContent = 'Loss: ' + data.loss.toFixed(6);
-            drawForecast(target, data.prediction);
-          }
-          function drawForecast(target, prediction){
-            const src = document.getElementById('pp_plot');
-            const existing = src && src.data && src.data[0] ? src.data[0] : null;
-            let baseX=[], baseY=[];
-            if(existing){ baseX = existing.x; baseY = existing.y; }
-            const start = baseX.length;
-            const x2 = Array.from({length: prediction.length}, (_,i)=>start+i);
-            const trace1 = {x: baseX, y: baseY, name: target, mode:'lines'};
-            const trace2 = {x: x2, y: prediction, name: 'Прогноз', mode:'lines'};
-            Plotly.newPlot('forecast_plot', [trace1, trace2], {paper_bgcolor:'#111418', plot_bgcolor:'#111418', font:{color:'#e6e6e6'}});
-          }
-        </script>
-        <div class="card" style="padding:12px; margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Экспорт</h3>
-          <button class="btn" type="button" onclick="window.print()">Экспортировать страницу в PDF</button>
+        <div class="card">
+          <h3>Экспорт</h3>
+          <button id="export_pdf" class="btn" type="button">Экспортировать страницу в PDF</button>
         </div>
-        <script>
-          async function runPP(){
-            const target = document.getElementById('target')?.value;
-            const method = document.getElementById('pp_method').value;
-            if(!target){ alert('Сначала выберите target'); return; }
-            const res = await fetch('/project/{{ project.id }}/preprocess', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({target, method})});
-            const data = await res.json();
-            if(!data.ok){ alert(data.error||'Ошибка'); return; }
-            drawPP(data);
-          }
-          function drawPP(data){
-            const rows = data.segment.records;
-            const cols = data.segment.columns;
-            const target = document.getElementById('target').value;
-            const x = Array.from({length: rows.length}, (_,i)=>i);
-            const y = rows.map(r=>r[target]);
-            Plotly.newPlot('pp_plot', [{x, y, name: target, mode:'lines'}], {paper_bgcolor:'#111418', plot_bgcolor:'#111418', font:{color:'#e6e6e6'}, shapes: (data.bounds||[]).map(b=>({type:'line', x0:b, x1:b, y0:Math.min(...y), y1:Math.max(...y), line:{color:'#ef4444', dash:'dot'}}))});
-            const cx = data.curve.x||[]; const cy = data.curve.y||[];
-            Plotly.newPlot('pp_curve', [{x: cx, y: cy, mode:'lines+markers', name:'Δ% длительность'}], {paper_bgcolor:'#111418', plot_bgcolor:'#111418', font:{color:'#e6e6e6'}});
-          }
-          // Восстановление из снапшота
-          (function restore(){
-            const snap = {{ snapshot|tojson|safe }};
-            if(!snap) return;
-            if(snap.preview && snap.preview.info){
-              renderSelectors(snap.preview.info.column_names);
-              document.getElementById('preview').textContent = JSON.stringify(snap.preview, null, 2);
-            }
-            if(snap.sample){
-              renderTable(snap.sample.columns, snap.sample.records);
-              const sel = snap.selection || {}; const t = sel.target; const f = sel.features || [];
-              drawPlot(t, f, snap.sample);
-              if(t){
-                const tgtSel = document.getElementById('target');
-                if(tgtSel){ tgtSel.value = t; }
-              }
-            }
-            if(snap.preprocess){
-              drawPP(snap.preprocess);
-            }
-            if(snap.train){
-              document.getElementById('train_info').textContent = 'Loss: ' + Number(snap.train.loss).toFixed(6);
-              const target = document.getElementById('target')?.value;
-              if(target){ drawForecast(target, snap.train.prediction); }
-            }
-          })();
-        </script>
       </main>
     </div>
   </body>
-  </html>
-
+</html>

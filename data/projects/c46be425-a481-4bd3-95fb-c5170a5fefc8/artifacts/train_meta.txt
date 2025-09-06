@@ -1,1 +1,0 @@
-ModelConfig(model_type='mlp', window=5, horizon=1, epochs=5, batch_size=32, learning_rate=0.001)

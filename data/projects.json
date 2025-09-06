@@ -1,18 +1,17 @@
 [
   {
-    "id": "c46be425-a481-4bd3-95fb-c5170a5fefc8",
+    "id": "9a748387-d2a9-4d2c-833c-f93f99127bc5",
     "name": "test",
-    "description": "test1",
+    "description": "",
     "thumb": null,
     "status": "trained",
-    "data_path": "/app/data/projects/c46be425-a481-4bd3-95fb-c5170a5fefc8/test_data.csv",
-    "target": "temperature",
+    "data_path": "D:\\учеба\\project\\data\\projects\\9a748387-d2a9-4d2c-833c-f93f99127bc5\\datain.csv",
+    "target": "Temperature",
     "features": [
-      "pressure",
-      "humidity"
+      "Wind_Speed"
     ],
     "preprocessed": true,
     "model": "mlp",
-    "horizon": 1
+    "horizon": 7
   }
 ]

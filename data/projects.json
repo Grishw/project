@@ -1,14 +1,14 @@
 [
   {
-    "id": "9a748387-d2a9-4d2c-833c-f93f99127bc5",
-    "name": "test",
+    "id": "afb0f928-5a3a-45fd-82e7-4437154dd723",
+    "name": "1`",
     "description": "",
     "thumb": null,
     "status": "trained",
-    "data_path": "D:\\учеба\\project\\data\\projects\\9a748387-d2a9-4d2c-833c-f93f99127bc5\\datain.csv",
+    "data_path": "D:\\учеба\\project\\data\\projects\\afb0f928-5a3a-45fd-82e7-4437154dd723\\datain.csv",
     "target": "Temperature",
     "features": [
-      "Wind_Speed"
+      "Temperature"
     ],
     "preprocessed": true,
     "model": "mlp",

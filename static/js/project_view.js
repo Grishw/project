@@ -424,7 +424,7 @@
       records: [...historicalData, ...forecastData]
     };
     // Передаем массив трассировочных объектов в функцию рисования графиков
-    drawPlot('forecast_plot', target, [], data, {});
+    drawPlot('forecast_plot', target, ['x', 'y'], data, {});
   }
 
   // Запуск тренировки модели
@@ -530,7 +530,22 @@
       alert(data.error || 'Ошибка');
       return;
     }
-    drawPP(data);
+    //drawPP(data);
+    const rows = data.segment.records;
+    const cols = data.segment.columns;
+    let x = Array.from({ length: rows.length }, (_, i) => i);
+    if (Array.isArray(data.x) && data.x.length === rows.length) {
+      x = data.x;
+    }
+
+    // Передаем в drawPlot массив координат, название графика, список характеристик и сами данные
+    drawPlot(
+      'pp_plot',           // ID элемента для вставки графика
+      target,              // Название целевой переменной
+      [],                  // Дополнительные характеристики (если нужны)
+      { columns: cols, records: rows }, // Данные таблицы
+      null                 // Метаданные о времени (не требуются в данном примере)
+    );
     setCurrentSnap({ preprocess: data });
   }
 

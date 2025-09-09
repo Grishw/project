@@ -1,17 +1,15 @@
 [
   {
-    "id": "afb0f928-5a3a-45fd-82e7-4437154dd723",
-    "name": "1`",
+    "id": "9e61b094-99bf-4a25-9290-5f9aa85861f1",
+    "name": "1",
     "description": "",
     "thumb": null,
-    "status": "trained",
-    "data_path": "D:\\учеба\\project\\data\\projects\\afb0f928-5a3a-45fd-82e7-4437154dd723\\datain.csv",
+    "status": "selected",
+    "data_path": "D:\\учеба\\project\\data\\projects\\9e61b094-99bf-4a25-9290-5f9aa85861f1\\datain.csv",
     "target": "Temperature",
     "features": [
       "Temperature"
     ],
-    "preprocessed": true,
-    "model": "mlp",
-    "horizon": 7
+    "preprocessed": true
   }
 ]

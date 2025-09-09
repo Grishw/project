@@ -305,7 +305,8 @@
     if(data.data){
       renderTable('seleted-table', data.data.columns, tableData);
       drawPlot('plot', target, features, data.data, data.time);
-      setCurrentSnap({ sample: data.data, selection: { target, features }, time: data.time });
+      setCurrentSnap({ selection: { target, features }, time: time, sample: data.data });
+      console.log(getSnapshot());
     }
   }
 
@@ -592,6 +593,7 @@
     const snap = getSnapshot();
     if (!snap) return;
     currentSnap = snap;
+    console.log(snap);
     if (snap.preview && snap.preview.info) {
       renderPreview(snap.preview.head, snap.preview.info.column_names);
       renderSelectors(snap.preview.info.column_names);
@@ -619,6 +621,7 @@
           tgtSel.value = t;
         }
       }
+
       if (snap.time) {
         const tc = document.getElementById('time_column');
         const tk = document.getElementById('time_kind');

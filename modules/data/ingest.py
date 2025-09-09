@@ -47,11 +47,13 @@ def restore_preview_from_metadata(project_id: str, data_path: str) -> Dict[str, 
     return dataframe_preview(data_path)
 
 
-def restore_selection_from_metadata(project_id: str, data_path: str, target: str, features: list[str]) -> Dict[str, Any]:
+def restore_selection_from_metadata(project_id: str, data_path: str, target: str, features: list[str], time: str) -> Dict[str, Any]:
     """Восстанавливает выборку данных из файла"""
     cols = []
     if target:
         cols.append(target)
+    if time:
+        cols.append(time)
     cols.extend([c for c in features if c and c != target])
     return sample_columns(data_path, cols)
 
@@ -117,10 +119,15 @@ def restore_full_snapshot_from_metadata(project_id: str, metadata: Dict[str, Any
     if metadata.get("selection"):
         selection_meta = metadata["selection"]
         snapshot["selection"] = selection_meta
+
+        time_meta = metadata["time"]
+        snapshot["time"] = time_meta
+        
         snapshot["sample"] = restore_selection_from_metadata(
             project_id, data_path, 
             selection_meta.get("target"), 
-            selection_meta.get("features", [])
+            selection_meta.get("features", []),
+            time_meta.get("column")
         )
     
     # Восстанавливаем preprocess

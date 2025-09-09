@@ -58,6 +58,9 @@ docker compose up --build
 Откройте `http://localhost:8000`.
 
 ### Локально (без Docker)
+### IDE
+Запустить файл app.py
+### linux
 ```bash
 python -m venv .venv
 . .venv/bin/activate   # Windows: .venv\\Scripts\\activate

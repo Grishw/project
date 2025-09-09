@@ -71,8 +71,8 @@ gunicorn app:app -b 0.0.0.0:8000
 python -m venv .venv
 . .venv/bin/activate   # Windows: .venv\\Scripts\\activate
 pip install -r requirements.txt
+python app.py
 ```
-Запустить файл app.py
 Откройте адрес из консоли.
 ## Как пользоваться
 1. На главной странице создайте новый проект.

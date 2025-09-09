@@ -58,8 +58,6 @@ docker compose up --build
 Откройте `http://localhost:8000`.
 
 ### Локально (без Docker)
-### IDE
-Запустить файл app.py
 ### linux
 ```bash
 python -m venv .venv
@@ -68,7 +66,14 @@ pip install -r requirements.txt
 gunicorn app:app -b 0.0.0.0:8000
 ```
 Откройте `http://localhost:8000`.
-
+### Windows
+```bash
+python -m venv .venv
+. .venv/bin/activate   # Windows: .venv\\Scripts\\activate
+pip install -r requirements.txt
+```
+Запустить файл app.py
+Откройте адрес из консоли.
 ## Как пользоваться
 1. На главной странице создайте новый проект.
 2. На странице проекта загрузите CSV (перетащите файл или выберите через диалог).

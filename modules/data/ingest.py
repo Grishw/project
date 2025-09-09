@@ -58,12 +58,12 @@ def restore_selection_from_metadata(project_id: str, data_path: str, target: str
     return sample_columns(data_path, cols)
 
 
-def restore_preprocess_from_metadata(project_id: str, data_path: str, target: str, method: str) -> Dict[str, Any]:
+def restore_preprocess_from_metadata(project_id: str, data_path: str, target: str, method: str, time_col: str) -> Dict[str, Any]:
     """Восстанавливает результаты предобработки из файла"""
     from modules.data.preprocess import preprocess_pipeline
     import pandas as pd
     
-    df_info = sample_columns(data_path, [target])
+    df_info = sample_columns(data_path, [target, time_col])
     df = pd.DataFrame(df_info["records"])
     out = preprocess_pipeline(df, target=target, method=method)
     seg = out["segment"].to_dict(orient="records")
@@ -107,22 +107,23 @@ def restore_train_from_metadata(project_id: str, data_path: str, target: str, mo
     }
 
 
-def restore_full_snapshot_from_metadata(project_id: str, metadata: Dict[str, Any], data_path: str) -> Dict[str, Any]:
+def restore_full_snapshot_from_metadata(project_id: str, metadata: Dict[str, Any], data_path: str, snapshot:  Dict[str, Any] = {}) -> Dict[str, Any]:
     """Восстанавливает полный снапшот из метаданных"""
-    snapshot = {}
     
     # Восстанавливаем preview
-    if metadata.get("has_preview"):
+    if metadata.get("has_preview") and not snapshot.get("preview"):
         snapshot["preview"] = restore_preview_from_metadata(project_id, data_path)
     
-    # Восстанавливаем selection
-    if metadata.get("selection"):
+    if metadata.get("time") and not snapshot.get("time"):
+        time_meta = metadata["time"]
+        snapshot["time"] = time_meta
+    
+    if metadata.get("selection") and not snapshot.get("selection"):
         selection_meta = metadata["selection"]
         snapshot["selection"] = selection_meta
 
-        time_meta = metadata["time"]
-        snapshot["time"] = time_meta
-        
+    # Восстанавливаем selection
+    if metadata.get("selection") and not snapshot.get("sample"):
         snapshot["sample"] = restore_selection_from_metadata(
             project_id, data_path, 
             selection_meta.get("target"), 
@@ -131,16 +132,17 @@ def restore_full_snapshot_from_metadata(project_id: str, metadata: Dict[str, Any
         )
     
     # Восстанавливаем preprocess
-    if metadata.get("preprocess"):
+    if metadata.get("preprocess") and not snapshot.get("preprocess"):
         preprocess_meta = metadata["preprocess"]
         snapshot["preprocess"] = restore_preprocess_from_metadata(
             project_id, data_path,
             preprocess_meta.get("target"),
-            preprocess_meta.get("method", "cusum")
+            preprocess_meta.get("method", "cusum"),
+            metadata["time"].get("column")
         )
     
     # Восстанавливаем train
-    if metadata.get("train"):
+    if metadata.get("train") and not snapshot.get("train"):
         train_meta = metadata["train"]
         snapshot["train"] = restore_train_from_metadata(
             project_id, data_path,

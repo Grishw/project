@@ -6,7 +6,6 @@
     <title>{{ project.name }}</title>
     <link rel="stylesheet" href="/static/styles.css" />
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <script defer src="/static/js/project_view.js"></script>
   </head>
   <body>
     <div id="app-root" data-project-id="{{ project.id }}"></div>
@@ -33,6 +32,9 @@
             <li class="step">Обучение и прогноз</li>
             <li class="step">Экспорт PDF</li>
           </ol>
+        </div>
+        <div class="card">
+          <a href="/" class="button"> На главную </a>
         </div>
       </aside>
       <main>
@@ -110,5 +112,8 @@
         </div>
       </main>
     </div>
+
+    
+    <script type="module" defer src="/static/js/project_view.js"></script>
   </body>
 </html>

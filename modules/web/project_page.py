@@ -25,13 +25,8 @@ def view(project_id: str):
     # Загружаем метаданные снапшота
     metadata = load_snapshot_metadata(project_id)
     data_path = get_data_file_path(project_id)
-    
-    if metadata and data_path:
-        # Восстанавливаем снапшот из метаданных
-        snapshot = restore_full_snapshot_from_metadata(project_id, metadata, data_path)
-    else:
-        # Fallback на старый формат снапшота
-        snapshot = load_snapshot(project_id) or {}
+    snapshot_old= load_snapshot(project_id) or {}
+    snapshot = restore_full_snapshot_from_metadata(project_id, metadata, data_path, snapshot_old)
     
     return render_template("project_view.html", project=project, snapshot=snapshot)
 
@@ -142,52 +137,29 @@ def preprocess(project_id: str):
     method = payload.get("method", "cusum")
     if not target:
         return jsonify({"error": "Не указан target"}), 400
-   
-    # читаем нужные столбцы
-    df_info = sample_columns(project["data_path"], [target])
-    import pandas as pd
-    df = pd.DataFrame(df_info["records"])  # ограниченный набор для демо; позже читать весь файл постранично
-    out = preprocess_pipeline(df, target=target, method=method)
-    seg = out["segment"].to_dict(orient="records")
-    update_project(project_id, preprocessed=True)
-    
+
     # Обновляем метаданные
     metadata = load_snapshot_metadata(project_id) or {}
     metadata["preprocess"] = {"target": target, "method": method}
     save_snapshot_metadata(project_id, metadata)
-    
-    # Построим ось времени X, если указана временная колонка
+   
     time_meta = (metadata.get("time") or {}) if isinstance(metadata, dict) else {}
     time_col = time_meta.get("column")
-    x_pp = None
-    try:
-        if time_col:
-            # Загружаем такой же объём строк, что и использовался для df_info
-            usecols = [c for c in [time_col, target] if c]
-            df_all = pd.read_csv(project["data_path"], usecols=usecols)
-            n = len(df_info["records"]) if isinstance(df_info.get("records"), list) else None
-            if n is not None:
-                df_all = df_all.head(n)
-            kind = time_meta.get("kind", "index")
-            fmt = time_meta.get("format")
-            if kind in ("timestamp_sec", "timestamp_ms"):
-                unit = "s" if kind == "timestamp_sec" else "ms"
-                t = pd.to_datetime(df_all[time_col], unit=unit, errors="coerce")
-            elif kind == "datetime_format" and fmt:
-                t = pd.to_datetime(df_all[time_col], format=fmt, errors="coerce")
-            elif kind in ("iso_date", "rfc_2822", "human_readable"):
-                t = pd.to_datetime(df_all[time_col], errors="coerce")
-            else:
-                t = None
-            if t is not None:
-                x_base = t.dt.tz_localize(None) if hasattr(t, 'dt') else t
-                x_pp = [d.isoformat() if hasattr(d, 'isoformat') else str(d) for d in x_base]
-    except Exception:
-        x_pp = None
+    if time_col:
+        df_info = sample_columns(project["data_path"], [target, time_col])
+    else:
+        df_info = sample_columns(project["data_path"], [target])
 
+    import pandas as pd
+    df = pd.DataFrame(df_info["records"])  # ограниченный набор для демо; позже читать весь файл постранично
+    out = preprocess_pipeline(df, target=target, method=method)
+    seg = out["segment"].to_dict(orient="records")
+
+    update_project(project_id, preprocessed=True)
+    
     # Сохраняем только результаты предобработки для быстрого доступа
     snap = load_snapshot(project_id) or {}
-    snap["preprocess"] = {"segment": {"columns": list(out["segment"].columns), "records": seg}, "bounds": out["bounds"], "curve": out["curve"], "x": x_pp}
+    snap["preprocess"] = {"segment": {"columns": list(out["segment"].columns), "records": seg}, "bounds": out["bounds"], "curve": out["curve"]}
     save_snapshot(project_id, snap)
     
     return jsonify({
@@ -195,7 +167,6 @@ def preprocess(project_id: str):
         "segment": {"columns": list(out["segment"].columns), "records": seg},
         "bounds": out["bounds"],
         "curve": out["curve"],
-        "x": x_pp,
     })
 
 

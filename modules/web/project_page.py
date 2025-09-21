@@ -16,7 +16,7 @@ project_bp = Blueprint(
 BASE_DATA_DIR = os.path.abspath(os.path.join(os.getcwd(), "data", "projects"))
 
 
-@project_bp.route("/<project_id>/view")
+@project_bp.route("/<project_id>/edit")
 def view(project_id: str):
     project = get_project(project_id)
     if not project:
@@ -101,30 +101,47 @@ def select_columns(project_id: str):
     time_kind = time_meta.get("kind") or "index"
     time_format = time_meta.get("format") or None
     cols = []
-    if target:
-        cols.append(target)
-    cols.extend([c for c in features if c and c != target])
+    target_requrent = None
+    target_requrent_column_name = None
+    
+    # Собираем названия столбцов для извлечения
+    cols.append(target)
+
+    for item in features:
+        if item != target:
+            cols.append(item)
+        else:
+            target_requrent = target
+            target_requrent_column_name = target_requrent+'_shift'
+    
     # Если пользователь указал временную колонку — добавим её в сэмпл для построения оси X
     time_meta = payload.get("time") or {}
     time_column = time_meta.get("column") or None
     if time_column and time_column not in cols:
         cols.append(time_column)
-    data = sample_columns(project["data_path"], cols)
-    update_project(project_id, target=target, features=features, status="selected")
+
+    time = {"column": time_column, "kind": time_kind, "format": time_format}
     
+    # Собираем данные
+    data = sample_columns(project["data_path"], cols, target_requrent=target_requrent)
+
+    # Обновляем данные проекта
+    update_project(project_id, target=target, features=features, target_requrent=target_requrent_column_name, status="selected")
+
+
     # Обновляем метаданные
     metadata = load_snapshot_metadata(project_id) or {}
-    metadata["selection"] = {"target": target, "features": features}
-    metadata["time"] = {"column": time_column, "kind": time_kind, "format": time_format}
+    metadata["selection"] = {"target": target, "features": features, "target_requrent": target_requrent_column_name}
+    metadata["time"] = time
     save_snapshot_metadata(project_id, metadata)
     
     # Сохраняем только sample для быстрого доступа
     snap = load_snapshot(project_id) or {}
     snap["sample"] = data
-    snap["time"] = {"column": time_column, "kind": time_kind, "format": time_format}
+    snap["time"] = time
     save_snapshot(project_id, snap)
     
-    return jsonify({"ok": True, "data": data, "time": {"column": time_column, "kind": time_kind, "format": time_format}})
+    return jsonify({"ok": True, "data": data, "time": time})
 
 
 @project_bp.route("/<project_id>/preprocess", methods=["POST"])
@@ -151,7 +168,7 @@ def preprocess(project_id: str):
         df_info = sample_columns(project["data_path"], [target])
 
     import pandas as pd
-    df = pd.DataFrame(df_info["records"])  # ограниченный набор для демо; позже читать весь файл постранично
+    df = pd.DataFrame(df_info["records"]) 
     out = preprocess_pipeline(df, target=target, method=method)
     seg = out["segment"].to_dict(orient="records")
 

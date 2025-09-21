@@ -1,4 +1,4 @@
-import ParserTool from "../utils/parsers.js"
+import ParserTool from "../utils/Parsers.js"
 
 // Отрисовка графика
 function drawPlot(plotId, target, features, data, timeMeta) {
@@ -8,26 +8,10 @@ function drawPlot(plotId, target, features, data, timeMeta) {
   let x = Array.from({ length: rows.length }, (_, i) => i);
   // Если в сэмпле есть временная колонка — используем её
   if (timeMeta && timeMeta.column && cols.includes(timeMeta.column)) {
-    const col = timeMeta.column;
-    const fmt = timeMeta.format || '';
-    if (timeMeta.kind === 'timestamp_sec') {
-      x = rows.map((r) => new Date(Number(r[col]) * 1000));
-    } else if (timeMeta.kind === 'timestamp_ms') {
-      x = rows.map((r) => new Date(Number(r[col])));
-    } else if (timeMeta.kind === 'datetime_format') {
-      if (fmt) {
-        x = rows.map((r) => ParserTool.parseByFormat(r[col], fmt) || r[col]);
-      } else {
-        x = rows.map((r) => ParserTool.parseCompactYYYYMMDDTHHMM(r[col]) || r[col]);
-      }
-    } else if (timeMeta.kind === 'iso_date' || timeMeta.kind === 'rfc_2822') {
-      x = rows.map((r) => new Date(r[col]));
-    } else if (timeMeta.kind === 'human_readable') {
-      x = rows.map((r) => r[col]);
-    }
+    x = ParserTool.parsTime(rows, timeMeta);
   }
   const traces = [];
-  if (target && cols.includes(target)) {
+  if (target && !cols.includes(target)) {
     traces.push({
       x,
       y: rows.map((r) => r[target]),
@@ -86,13 +70,37 @@ function drawForecast(target, prediction, xAxes) {
 }
 
 // Отрисовка результатов предварительной обработки
-function drawPP(curve) {
+function drawPP(curve, timeMeta, rows, target) {
   const cx = curve.x || [];
   const cy = curve.y || [];
+  let x = [];
+  // Если в сэмпле есть временная колонка — используем её
+  if (timeMeta && timeMeta.column) {
+    x = ParserTool.parsTime(rows, timeMeta);
+  }
+  let actual_x = [];
+  for(let i in cx) {
+    actual_x.push(x[cx[i]]);
+  };
+
+  const traces = [];
+  traces.push({
+    x: actual_x, 
+    y: cy, 
+    mode: 'lines+markers', 
+    name: 'time %delta' 
+  });
+
+  traces.push({
+    x: x, 
+    y: rows.map((r) => r[target]), 
+    mode: 'lines+markers', 
+    name: 'target' 
+  });
+
+  // Очистка предыдущего графика и отрисовка заново
   try { Plotly.purge('pp_curve'); } catch(_) {}
-  Plotly.newPlot('pp_curve', [
-    { x: cx, y: cy, mode: 'lines+markers', name: 'Δ% длительность' },
-  ], {
+  Plotly.newPlot('pp_curve', traces, {
     paper_bgcolor: '#111418',
     plot_bgcolor: '#111418',
     font: { color: '#e6e6e6' },

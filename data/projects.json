@@ -1,15 +1,16 @@
 [
   {
-    "id": "615f0da0-9684-4c0a-b950-fce3bc18008c",
-    "name": "1",
+    "id": "c819b8ca-435a-4320-89ab-c87d4b7739dd",
+    "name": "12",
     "description": "",
     "thumb": null,
-    "status": "trained",
-    "data_path": "D:\\учеба\\project\\data\\projects\\615f0da0-9684-4c0a-b950-fce3bc18008c\\datain.csv",
+    "status": "selected",
+    "data_path": "D:\\учеба\\project\\data\\projects\\c819b8ca-435a-4320-89ab-c87d4b7739dd\\datain.csv",
     "target": "Temperature",
     "features": [
-      "Date"
+      "Temperature"
     ],
+    "target_requrent": "Temperature_shift",
     "preprocessed": true,
     "model": "mlp",
     "horizon": 7

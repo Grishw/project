@@ -1,4 +1,5 @@
 from __future__ import annotations
+from modules.ChaosLogic.chaos_logic import cusum, DisorderResult, get_more_points, get_point_with_max_index, local_fractal_dimension
 
 from typing import Dict, Any, Tuple, List
 import numpy as np
@@ -24,62 +25,62 @@ def select_last_segment(df: pd.DataFrame, length: int = 200) -> pd.DataFrame:
     return df.iloc[-length:].copy()
 
 
-def cusum_bounds(series: pd.Series, k: float = 0.5, h: float = 5.0) -> List[int]:
-    # CUSUM для обнаружения сдвигов среднего, возвращаем индексы границ
-    x = series.astype(float).to_numpy()
-    s_pos = 0.0
-    s_neg = 0.0
-    mean = np.mean(x)
-    bounds: List[int] = []
-    for i in range(len(x)):
-        s_pos = max(0.0, s_pos + (x[i] - mean - k))
-        s_neg = min(0.0, s_neg + (x[i] - mean + k))
-        if s_pos > h or s_neg < -h:
-            bounds.append(i)
-            s_pos = 0.0
-            s_neg = 0.0
-            mean = np.mean(x[max(0, i - 100): i + 1])
-    return bounds
+def select_cusum_segment(df: pd.DataFrame, target: str) -> Tuple[pd.DataFrame, List[int]]:
+    window_df = df.copy()
+    result = cusum(window_df[target]) if target in window_df.columns else []
+    bnds = result.indMax
 
-
-def select_cusum_segment(df: pd.DataFrame, target: str, back_window: int = 600) -> Tuple[pd.DataFrame, List[int]]:
-    # Берём последние back_window наблюдений и находим последнюю границу
-    window_df = df.iloc[-back_window:] if len(df) > back_window else df.copy()
-    bnds = cusum_bounds(window_df[target]) if target in window_df.columns else []
     if bnds:
-        last_idx = bnds[-1]
-        seg = window_df.iloc[last_idx:].copy()
+        arr = get_more_points(bnds, result.B, 0.2)
+        bnds_last = get_point_with_max_index(arr)
+        seg = window_df.iloc[bnds_last:].copy()
     else:
         seg = select_last_segment(window_df, 200)
     return seg, bnds
 
-
 def change_duration_curve(series: pd.Series, pct: float = 0.05) -> Dict[str, Any]:
-    # y: длина цепочки подряд идущих значений в пределах +-pct от стартового
-    # знак y зависит от направления изменения: положит., если текущее > стартового; отрицат., если ниже
-    x_marks: List[int] = []
-    y_vals: List[int] = []
-    arr = series.astype(float).to_numpy()
+    """
+    Функция вычисляет изменение длительности серий значений в заданном диапазоне отклонений (+/- pct).
+    
+    :param series: Входной временной ряд
+    :param pct: Процент отклонения от начального значения последовательности
+    :return: Словарь с координатами точек ("x" - индексы, "y" - длительность сегментов с направлением изменения)
+    """
+    x_marks: List[int] = []   # Список позиций начала каждого нового сегмента
+    y_vals: List[int] = []    # Значения длины сегментов с учётом знака направления изменений
+    arr = series.astype(float).to_numpy()  # Преобразуем серию в массив чисел
     n = len(arr)
     i = 0
     while i < n:
         start = arr[i]
-        if np.isnan(start):
-            i += 1
-            continue
+            
+        # Определяем границы диапазона (+/- pct% от стартового значения)
         limit_low = start * (1 - pct)
         limit_high = start * (1 + pct)
+        
+        # Ищем следующую позицию вне диапазона
         j = i
-        while j < n and not np.isnan(arr[j]) and (limit_low <= arr[j] <= limit_high):
+        while j < n and (limit_low <= arr[j] <= limit_high):
             j += 1
+        
+        # Длина найденного сегмента
         length = j - i
-        if j < n and not np.isnan(arr[j]):
-            sign = 1 if arr[j] > start else -1
+        
+        # Определение знака направления следующего элемента относительно первого
+        if j >= n or np.isnan(arr[j]):
+            sign = 0  # Нет следующего элемента или он NaN
+        elif arr[j] > start:
+            sign = 1  # Следующее значение выше стартового
         else:
-            sign = 0
-        x_marks.append(j if j < n else n - 1)
+            sign = -1  # Следующее значение ниже стартового
+        
+        # Добавляем точку графика
+        x_marks.append(i)
         y_vals.append(sign * length)
+        
+        # Переходим к следующей итерации
         i = max(j, i + 1)
+    
     return {"x": x_marks, "y": y_vals}
 
 

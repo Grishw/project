@@ -15,8 +15,6 @@ function initApp() {
   // Текущее клиентское состояние (минимальный снапшот)
   let currentSnap = null;
 
-  
-
   // Обработчик перетаскивания файлов
   function handleDrop(e) {
     e.preventDefault();
@@ -43,13 +41,6 @@ function initApp() {
       RestoreModule.setCurrentSnap({ preview: data.preview });
     }
   }
-
-
-
-
-
-
-  
 
   // Запуск тренировки модели
   async function runTrain() {
@@ -136,7 +127,6 @@ function initApp() {
     PlotModule.drawForecast(target, data.prediction, data.x);
   }
 
-
   // Предварительная обработка данных
   async function runPP() {
     const target = document.getElementById('target')?.value;
@@ -165,24 +155,20 @@ function initApp() {
       format: document.getElementById('time_format')?.value || null,
     };
 
-    const time_col = time.column
-
-
     // Передаем в drawPlot массив координат, название графика, список характеристик и сами данные
+    
     PlotModule.drawPlot(
       'pp_plot',           // ID элемента для вставки графика
       target,              // Название целевой переменной
-      [],                  // Дополнительные характеристики (если нужны)
+      [target],                  // Дополнительные характеристики
       { columns: cols, records: rows}, // Данные таблицы
       time                 // Метаданные о времени 
     );
 
     // Дополнительно выводим график кривых изменений длительности
-    PlotModule.drawPP(data.curve);
+    PlotModule.drawPP(data.curve, time, rows, target);
     RestoreModule.setCurrentSnap({ preprocess: data });
   }
-
-  
 
   function bind(){
     const form = document.getElementById('upload-form');

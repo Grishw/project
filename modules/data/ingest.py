@@ -31,10 +31,13 @@ def dataframe_preview(csv_path: str, max_rows: int = 5) -> Dict[str, Any]:
     }
 
 
-def sample_columns(csv_path: str, columns: list[str], limit: int = 1000) -> Dict[str, Any]:
+def sample_columns(csv_path: str, columns: list[str], limit: int = 1000, target_requrent: str = None) -> Dict[str, Any]:
     usecols = columns if columns else None
     df = pd.read_csv(csv_path, usecols=usecols)
-    sample = df.head(limit)
+    sample = df.copy()
+    if target_requrent:
+        sample[target_requrent+'_shift'] = sample[target_requrent].shift(1)
+        sample.dropna(inplace=True)
     return {
         "records": sample.to_dict(orient="records"),
         "columns": list(sample.columns.astype(str)),
@@ -109,7 +112,8 @@ def restore_train_from_metadata(project_id: str, data_path: str, target: str, mo
 
 def restore_full_snapshot_from_metadata(project_id: str, metadata: Dict[str, Any], data_path: str, snapshot:  Dict[str, Any] = {}) -> Dict[str, Any]:
     """Восстанавливает полный снапшот из метаданных"""
-    
+    if metadata == None:
+        return {}
     # Восстанавливаем preview
     if metadata.get("has_preview") and not snapshot.get("preview"):
         snapshot["preview"] = restore_preview_from_metadata(project_id, data_path)

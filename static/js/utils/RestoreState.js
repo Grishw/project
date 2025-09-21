@@ -66,13 +66,13 @@ function restore() {
     PlotModule.drawPlot(
       'pp_plot',           // ID элемента для вставки графика
       snap.selection.target,              // Название целевой переменной
-      [],                  // Дополнительные характеристики (если нужны)
+      [snap.selection.target],                  // Дополнительные характеристики (если нужны)
       { columns: cols, records: rows}, // Данные таблицы
       snap.time                // Метаданные о времени 
     );
 
     // Дополнительно выводим график кривых изменений длительности
-    PlotModule.drawPP(snap.preprocess.curve);
+    PlotModule.drawPP(snap.preprocess.curve, snap.time, rows, snap.selection.target);
   }
   if (snap.train) {
     document.getElementById('train_info').textContent = `Loss: ${Number(snap.train.loss).toFixed(6)}`;

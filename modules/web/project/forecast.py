@@ -4,6 +4,9 @@ from modules.storage.projects import get_project, update_project, save_snapshot,
 from modules.data.ingest import save_uploaded_csv, dataframe_preview, sample_columns, restore_full_snapshot_from_metadata
 from modules.data.preprocess import preprocess_pipeline
 from modules.models.tf_models import ModelConfig, train_and_predict, train_model, iterative_forecast
+import os
+
+BASE_DATA_DIR = os.path.abspath(os.path.join(os.getcwd(), "data", "projects"))
 
 @project_bp.route("/<project_id>/forecast", methods=["POST"])
 def forecast(project_id: str):

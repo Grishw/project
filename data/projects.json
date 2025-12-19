@@ -1,35 +1,9 @@
 [
   {
-    "id": "a6046544-fcc4-4d47-96b2-d62c84cb3be4",
-    "name": "1`",
-    "description": "1",
+    "id": "c95d9c15-1725-4c2e-b70a-5b1092df1414",
+    "name": "123",
+    "description": "",
     "thumb": null,
-    "status": "trained",
-    "data_path": "D:\\учеба\\project\\data\\projects\\a6046544-fcc4-4d47-96b2-d62c84cb3be4\\datain.csv",
-    "target": "Temperature",
-    "features": [
-      "Temperature"
-    ],
-    "target_requrent": "Temperature_shift",
-    "preprocessed": true,
-    "model": "cnn",
-    "horizon": 7
-  },
-  {
-    "id": "2bf91c46-d34e-4088-99c0-fff0cd566fc9",
-    "name": "test",
-    "description": "123124qwredasfasfasfasf",
-    "thumb": null,
-    "status": "trained",
-    "data_path": "D:\\учеба\\project\\data\\projects\\2bf91c46-d34e-4088-99c0-fff0cd566fc9\\datain.csv",
-    "target": "Temperature",
-    "features": [
-      "Temperature",
-      "Humidity"
-    ],
-    "target_requrent": "Temperature_shift",
-    "preprocessed": true,
-    "model": "mlp",
-    "horizon": 7
+    "status": "new"
   }
 ]

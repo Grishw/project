@@ -7,11 +7,13 @@ from flask import render_template
 def create_app() -> Flask:
     app = Flask(__name__)
 
-    # Blueprint регистрация откладывается до импорта
     from modules.web.routes import web_bp
-    from modules.web.project_page import project_bp
+    from modules.web.project_card import project_card_bp
+    from modules.web.project.blueprint import project_bp
+
     app.register_blueprint(web_bp)
     app.register_blueprint(project_bp)
+    app.register_blueprint(project_card_bp)
 
     return app
 

@@ -42,7 +42,4 @@ async function loadModels() {
   });
 }
 
-
-
-
 export default { loadModels, setActiveModel};

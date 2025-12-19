@@ -1,6 +1,9 @@
 from flask import Flask
 from flask import render_template
 
+# call .venv/Scripts/activate
+# python app.py
+
 def create_app() -> Flask:
     app = Flask(__name__)
 

@@ -39,34 +39,37 @@ function drawPlot(plotId, target, features, data, timeMeta) {
 }
 
 // Обновленная функция прорисовки прогноза
-function drawForecast(target, prediction, xAxes) {
+function drawForecast(target, prediction, context, time) {
   const src = document.getElementById('pp_plot');
   const existing = src && src.data && src.data[0] ? src.data[0] : null;
-  let baseX = [], baseY = [];
-  if (existing) {
-    baseX = existing.x;
-    baseY = existing.y;
-  }
 
-  // Формируем оси X для будущего периода прогнозирования
-  const xFuture = xAxes && xAxes.future ? xAxes.future : Array.from({ length: prediction.length }, (_, i) => baseX.length + i);
+  const traces = [];
+  traces.push({
+    y: prediction[target], 
+    x: prediction[time.column], 
+    mode: 'lines+markers', 
+    name: 'prediction' 
+  });
 
-  // Данные текущего временного ряда
-  const trace1 = { x: xAxes && xAxes.base ? xAxes.base : baseX, y: baseY, name: target, mode: 'lines' };
+  const actual_time = context[time.column].map(value => ({
+    [time.column]: value
+  }));
 
-  // Прогнозируемые значения
-  const trace2 = { x: xFuture, y: prediction, name: 'Прогноз', mode: 'lines' };
+  
+  traces.push({
+    y: context[target], 
+    x: ParserTool.parsTime(actual_time,time), 
+    mode: 'lines+markers', 
+    name: 'context' 
+  });
 
-  // Объединяем данные в одну структуру
-  const historicalData = trace1.y.map((_, idx) => ({ x: trace1.x[idx], y: trace1.y[idx] }));
-  const forecastData = trace2.y.map((_, idx) => ({ x: trace2.x[idx], y: trace2.y[idx] }));
-
-  const data = {
-    columns: ['x', 'y'],
-    records: [...historicalData, ...forecastData]
-  };
-  // Передаем массив трассировочных объектов в функцию рисования графиков
-  drawPlot('forecast_plot', target, ['x', 'y'], data, {});
+  // Очистка предыдущего графика и отрисовка заново
+  try { Plotly.purge('forecast_plot'); } catch(_) {}
+  Plotly.newPlot('forecast_plot', traces, {
+    paper_bgcolor: '#111418',
+    plot_bgcolor: '#111418',
+    font: { color: '#e6e6e6' },
+  });
 }
 
 // Отрисовка результатов предварительной обработки
@@ -107,4 +110,23 @@ function drawPP(curve, timeMeta, rows, target) {
   });
 }
 
-export default { drawPlot, drawForecast, drawPP };
+function drawTrainCurve(data) {
+  const epochs = (data.loss_curve || []).map((_, i) => i + 1);
+  const traces = [];
+  if (Array.isArray(data.loss_curve) && data.loss_curve.length) {
+    traces.push({ x: epochs, y: data.loss_curve, name: 'loss', mode: 'lines' });
+  }
+  if (Array.isArray(data.val_loss_curve) && data.val_loss_curve.length) {
+    traces.push({ x: epochs.slice(0, data.val_loss_curve.length), y: data.val_loss_curve, name: 'val_loss', mode: 'lines' });
+  }
+  if (traces.length) {
+    try { Plotly.purge('train_curve'); } catch(_) {}
+    Plotly.newPlot('train_curve', traces, {
+      paper_bgcolor: '#111418',
+      plot_bgcolor: '#111418',
+      font: { color: '#e6e6e6' },
+    });
+  }
+}
+
+export default { drawPlot, drawForecast, drawPP, drawTrainCurve };

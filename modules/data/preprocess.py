@@ -27,13 +27,15 @@ def select_last_segment(df: pd.DataFrame, length: int = 200) -> pd.DataFrame:
 
 def select_cusum_segment(df: pd.DataFrame, target: str) -> Tuple[pd.DataFrame, List[int]]:
     window_df = df.copy()
+    print("Start csum")
     result = cusum(window_df[target]) if target in window_df.columns else []
     bnds = result.indMax
-
+    print(bnds)
     if bnds:
         arr = get_more_points(bnds, result.B, 0.2)
-        bnds_last = get_point_with_max_index(arr)
-        seg = window_df.iloc[bnds_last:].copy()
+        bnds = get_point_with_max_index(arr)
+        print(bnds)
+        seg = window_df.iloc[bnds:].copy()
     else:
         seg = select_last_segment(window_df, 200)
     return seg, bnds

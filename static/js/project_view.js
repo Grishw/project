@@ -2,6 +2,7 @@ import PlotModule from "./components/Plot.js"
 import SelectionModule from "./components/Selector.js"
 import DOMUtils from "./utils/DOMUtils.js";
 import RestoreModule from "./utils/RestoreState.js"
+import ModelController from "./components/ModelController.js"
 
 import renderPreview from "./components/Preview.js";
 import renderTable from "./components/Table.js";
@@ -86,25 +87,9 @@ function initApp() {
     appendTrainLog('Обучение завершено.');
 
     // График кривых обучения
-    try {
-      const epochs = (data.loss_curve || []).map((_, i) => i + 1);
-      const traces = [];
-      if (Array.isArray(data.loss_curve) && data.loss_curve.length) {
-        traces.push({ x: epochs, y: data.loss_curve, name: 'loss', mode: 'lines' });
-      }
-      if (Array.isArray(data.val_loss_curve) && data.val_loss_curve.length) {
-        traces.push({ x: epochs.slice(0, data.val_loss_curve.length), y: data.val_loss_curve, name: 'val_loss', mode: 'lines' });
-      }
-      if (traces.length) {
-        try { Plotly.purge('train_curve'); } catch(_) {}
-        Plotly.newPlot('train_curve', traces, {
-          paper_bgcolor: '#111418',
-          plot_bgcolor: '#111418',
-          font: { color: '#e6e6e6' },
-        });
-      }
-    } catch (_) {}
+    PlotModule.drawTrainCurve(data);
   }
+
   async function runForecast() {
     const target = document.getElementById('target')?.value;
     if (!target) {
@@ -119,12 +104,26 @@ function initApp() {
       body: JSON.stringify({ target, steps, context }),
     });
     const data = await res.json();
-    comsole.log("predict",data);
+    console.log("predict",data);
     if (!data.ok) {
       alert(data.error || 'Ошибка прогноза');
       return;
     }
-    PlotModule.drawForecast(target, data.prediction, data.x);
+    const time = {
+      column: document.getElementById('time_column')?.value || null,
+      kind: document.getElementById('time_kind')?.value || 'index',
+      format: document.getElementById('time_format')?.value || null,
+    };
+    const prediction = {
+      [time.column]: data.prediction_time,
+      [target]: data.prediction_val
+    };
+    const context_data = {
+      [time.column]: data.context_time,
+      [target]: data.context_val
+    };
+
+    PlotModule.drawForecast(target, prediction, context_data, time);
   }
 
   // Предварительная обработка данных

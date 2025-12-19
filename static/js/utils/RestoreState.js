@@ -1,6 +1,7 @@
 import PlotModule from "../components/Plot.js"
 import SelectionModule from "../components/Selector.js"
 import DOMUtils from "./DOMUtils.js";
+import ModelController from "./components/ModelController.js"
 
 import renderPreview from "../components/Preview.js";
 import renderTable from "../components/Table.js";
@@ -75,11 +76,24 @@ function restore() {
     PlotModule.drawPP(snap.preprocess.curve, snap.time, rows, snap.selection.target);
   }
   if (snap.train) {
-    document.getElementById('train_info').textContent = `Loss: ${Number(snap.train.loss).toFixed(6)}`;
-    const target = snap.selection.target;
-    if (target) {
-      PlotModule.drawForecast(target, snap.train.prediction, snap.train.x);
-    }
+    const data_to_plot = {
+      loss_curve: snap.train.loss_curve
+    };
+    PlotModule.drawTrainCurve(data_to_plot);
+    ModelController.loadModels();
+  }
+
+  if (snap.predict) {
+    const prediction = {
+          [snap.time.column]: snap.predict.prediction_time,
+          [snap.selection.target]: snap.predict.prediction_val
+        };
+        const context_data = {
+          [snap.time.column]: snap.predict.context_time,
+          [tasnap.selection.targe]: snap.predict.context_val
+        };
+    
+        PlotModule.drawForecast(snap.selection.target, prediction, context_data,  snap.time)
   }
   updateSteps(snap);
 }

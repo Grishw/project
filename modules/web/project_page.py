@@ -123,7 +123,7 @@ def select_columns(project_id: str):
     time = {"column": time_column, "kind": time_kind, "format": time_format}
     
     # Собираем данные
-    data = sample_columns(project["data_path"], cols, target_requrent=target_requrent)
+    data = sample_columns(project["data_path"], cols, target_requrent=target_requrent, limit=1000)
 
     # Обновляем данные проекта
     update_project(project_id, target=target, features=features, target_requrent=target_requrent_column_name, status="selected")
@@ -214,6 +214,34 @@ def train(project_id: str):
     cfg = ModelConfig(model_type=model_type, window=window, horizon=horizon, epochs=epochs, batch_size=batch_size, learning_rate=learning_rate, val_split=val_split)
     # Только обучение на этом этапе
     train_out = train_model(series, cfg, save_dir=os.path.join(BASE_DATA_DIR, project_id, "artifacts"))
+    update_project(project_id, model=model_type, horizon=horizon, status="trained")
+    
+    # Обновляем метаданные
+    metadata = load_snapshot_metadata(project_id) or {}
+    metadata["train"] = {
+        "target": target,
+        "cfg": {"model": model_type, "window": window, "horizon": horizon, "epochs": epochs}
+    }
+    save_snapshot_metadata(project_id, metadata)
+    
+    # Сохраняем только результаты обучения для быстрого доступа
+    # Санитизация значений (NaN/inf -> None)
+    def finite_or_none(v):
+        try:
+            f = float(v)
+            return f if math.isfinite(f) else None
+        except Exception:
+            return None
+
+    tr_loss = finite_or_none(train_out.get('loss'))
+    tr_vloss = finite_or_none(train_out.get('val_loss'))
+    tr_vmae = finite_or_none(train_out.get('val_mae'))
+
+    # Санитизация кривых обучения (NaN/inf -> None)
+    def sanitize_array(arr):
+        if not isinstance(arr, list):
+            return None
+        return [finite_or_none(v) for v in arr]
 
     # Подготовим временные оси для отрисовки прогноза
     x_axes = {"base": None, "future": None}
@@ -255,47 +283,27 @@ def train(project_id: str):
     except Exception:
         x_axes["base"] = list(range(len(series)))
         x_axes["future"] = list(range(len(series), len(series)+horizon))
-    update_project(project_id, model=model_type, horizon=horizon, status="trained")
     
-    # Обновляем метаданные
-    metadata = load_snapshot_metadata(project_id) or {}
-    metadata["train"] = {
-        "target": target,
-        "cfg": {"model": model_type, "window": window, "horizon": horizon, "epochs": epochs}
-    }
-    save_snapshot_metadata(project_id, metadata)
-    
-    # Сохраняем только результаты обучения для быстрого доступа
-    # Санитизация значений (NaN/inf -> None)
-    def finite_or_none(v):
-        try:
-            f = float(v)
-            return f if math.isfinite(f) else None
-        except Exception:
-            return None
-
-    tr_loss = finite_or_none(train_out.get('loss'))
-    tr_vloss = finite_or_none(train_out.get('val_loss'))
-    tr_vmae = finite_or_none(train_out.get('val_mae'))
-
-    # Санитизация кривых обучения (NaN/inf -> None)
-    def sanitize_array(arr):
-        if not isinstance(arr, list):
-            return None
-        return [finite_or_none(v) for v in arr]
-
     loss_curve = sanitize_array(train_out.get('loss_curve')) or []
     val_loss_curve = sanitize_array(train_out.get('val_loss_curve')) or []
     mae_curve = sanitize_array(train_out.get('mae_curve')) or []
     val_mae_curve = sanitize_array(train_out.get('val_mae_curve')) or []
 
     snap = load_snapshot(project_id) or {}
-    snap["train"] = {"loss": tr_loss, "val_loss": tr_vloss, "val_mae": tr_vmae, "model_file": train_out.get('model_file'), "loss_curve": loss_curve, "val_loss_curve": val_loss_curve, "mae_curve": mae_curve, "val_mae_curve": val_mae_curve, "x": x_axes, "cfg": {
-      "model": model_type, "window": window, "horizon": horizon, "epochs": epochs, "batch_size": batch_size, "learning_rate": learning_rate, "val_split": val_split
+    snap["train"] = {"loss": tr_loss, "val_loss": tr_vloss, "val_mae": tr_vmae, "model_file": train_out.get('model_file'), 
+                     "loss_curve": loss_curve, "val_loss_curve": val_loss_curve, "mae_curve": mae_curve, "val_mae_curve": val_mae_curve, 
+                     "x": x_axes, "cfg": {
+                            "model": model_type, "window": window, 
+                            "horizon": horizon, "epochs": epochs, 
+                            "batch_size": batch_size, "learning_rate": learning_rate, 
+                            "val_split": val_split
     }}
     save_snapshot(project_id, snap)
     
-    return jsonify({"ok": True, "loss": tr_loss, "val_loss": tr_vloss, "val_mae": tr_vmae, "model_file": train_out.get('model_file'), "continued": bool(train_out.get('continued')), "loss_curve": loss_curve, "val_loss_curve": val_loss_curve, "mae_curve": mae_curve, "val_mae_curve": val_mae_curve, "x": x_axes})
+    return jsonify({"ok": True, "loss": tr_loss, "val_loss": tr_vloss, "val_mae": tr_vmae, 
+                    "model_file": train_out.get('model_file'), "continued": bool(train_out.get('continued')), 
+                    "loss_curve": loss_curve, "val_loss_curve": val_loss_curve, "mae_curve": mae_curve, 
+                    "val_mae_curve": val_mae_curve, "x": x_axes})
 
 
 @project_bp.route("/<project_id>/forecast", methods=["POST"])
@@ -325,6 +333,7 @@ def forecast(project_id: str):
     import pandas as pd
     metadata = load_snapshot_metadata(project_id) or {}
     time_meta = (metadata.get("time") or {}) if isinstance(metadata, dict) else {}
+
     time_col = time_meta.get("column")
     usecols = [target] + ([time_col] if time_col else [])
     df = pd.read_csv(project["data_path"], usecols=usecols)
@@ -334,13 +343,15 @@ def forecast(project_id: str):
     if not os.path.exists(model_path):
         return jsonify({"error": "Сначала обучите модель"}), 400
 
-    y_pred = iterative_forecast(series, model_path, window=window, steps=steps, horizon=horizon, context=context)
+    # Прогнозируем
+    print("Start predict")
+    pred = iterative_forecast(series, model_path, window=window, steps=steps, horizon=horizon, context=context)
 
     # Подготовим временную ось продолжения
-    x_future = None
+    time_future = None
     try:
         if time_col:
-            kind = time_meta.get("kind", "index")
+            kind = time_meta.get("kind")
             fmt = time_meta.get("format")
             if kind in ("timestamp_sec", "timestamp_ms"):
                 unit = "s" if kind == "timestamp_sec" else "ms"
@@ -351,14 +362,22 @@ def forecast(project_id: str):
                 t = pd.to_datetime(df[time_col], errors="coerce")
             else:
                 t = None
+            
             if t is not None:
                 x_base = t.dt.tz_localize(None) if hasattr(t, 'dt') else t
                 diffs = x_base.diff().dropna()
                 step = diffs.median() if not diffs.empty else pd.Timedelta(seconds=1)
                 last = x_base.iloc[-1]
-                x_future = [ (last + step * (i+1)).isoformat() for i in range(steps) ]
+                time_future = [ (last + step * (i+1)).isoformat() for i in range(horizon*steps) ]
     except Exception:
-        x_future = None
+        time_future = None
 
-    return jsonify({"ok": True, "prediction": y_pred.tolist(), "x": {"future": x_future}})
+    context_val = series[-context:]
+    time_current = df[time_col].iloc[-context:].to_numpy()
+
+    snap = load_snapshot(project_id) or {}
+    snap["predict"] = {"segment": {"prediction_val": pred.tolist(), "prediction_time": time_future, "context_val": context_val.tolist(), "context_time": time_current.tolist()}}
+    save_snapshot(project_id, snap)
+
+    return jsonify({"ok": True, "prediction_val": pred.tolist(), "prediction_time": time_future, "context_val": context_val.tolist(), "context_time": time_current.tolist()})
 

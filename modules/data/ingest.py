@@ -31,9 +31,12 @@ def dataframe_preview(csv_path: str, max_rows: int = 5) -> Dict[str, Any]:
     }
 
 
-def sample_columns(csv_path: str, columns: list[str], limit: int = 1000, target_requrent: str = None) -> Dict[str, Any]:
+def sample_columns(csv_path: str, columns: list[str], limit: int = None, target_requrent: str = None) -> Dict[str, Any]:
     usecols = columns if columns else None
-    df = pd.read_csv(csv_path, usecols=usecols)
+    if limit != None:
+        df = pd.read_csv(csv_path, usecols=usecols, nrows=limit) 
+    else:
+        df = pd.read_csv(csv_path, usecols=usecols)
     sample = df.copy()
     if target_requrent:
         sample[target_requrent+'_shift'] = sample[target_requrent].shift(1)

@@ -41,13 +41,17 @@ def build_mlp(window: int, horizon: int, lr: float) -> tf.keras.Model:
 
 def build_cnn(window: int, horizon: int, lr: float) -> tf.keras.Model:
     inp = tf.keras.Input(shape=(window, 1))
-    x = tf.keras.layers.Conv1D(32, 3, activation='relu', padding='causal')(inp)
-    x = tf.keras.layers.Conv1D(32, 3, activation='relu', padding='causal')(x)
+    x = tf.keras.layers.Conv1D(32, 3, padding='same', activation='relu')(inp)
+    x = tf.keras.layers.Conv1D(64, 3, padding='same', activation='relu')(x)
     x = tf.keras.layers.GlobalAveragePooling1D()(x)
     x = tf.keras.layers.Dense(64, activation='relu')(x)
     out = tf.keras.layers.Dense(horizon)(x)
     model = tf.keras.Model(inp, out)
-    model.compile(optimizer=tf.keras.optimizers.Adam(lr), loss='mse', metrics=['mae'])
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(lr),
+        loss='mse',
+        metrics=['mae']
+    )
     return model
 
 
